@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Kelsey Pawelek</title>
+    <link>/</link>
+    <description>Recent content on Kelsey Pawelek</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-US</language>
+    <lastBuildDate>Sun, 02 Oct 2016 22:55:05 -0400</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Projects</title>
+      <link>/projects/</link>
+      <pubDate>Sun, 02 Oct 2016 22:55:05 -0400</pubDate>
+      
+      <guid>/projects/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Hello R Markdown</title>
+      <link>/post/2015/07/23/hello-r-markdown/</link>
+      <pubDate>Thu, 23 Jul 2015 21:13:14 -0500</pubDate>
+      
+      <guid>/post/2015/07/23/hello-r-markdown/</guid>
+      <description>R Markdown This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see http://rmarkdown.rstudio.com.
+You can embed an R code chunk like this:
+summary(cars) ## speed dist ## Min. : 4.0 Min. : 2.00 ## 1st Qu.:12.0 1st Qu.: 26.00 ## Median :15.0 Median : 36.00 ## Mean :15.4 Mean : 42.98 ## 3rd Qu.</description>
+    </item>
+    
+    <item>
+      <title>Creating a New Theme</title>
+      <link>/post/2014/09/28/creating-a-new-theme/</link>
+      <pubDate>Sun, 28 Sep 2014 00:00:00 +0000</pubDate>
+      
+      <guid>/post/2014/09/28/creating-a-new-theme/</guid>
+      <description>Introduction This tutorial will show you how to create a simple theme in Hugo. I assume that you are familiar with HTML, the bash command line, and that you are comfortable using Markdown to format content. I&amp;rsquo;ll explain how Hugo uses templates and how you can organize your templates to create a theme. I won&amp;rsquo;t cover using CSS to style your theme.
+We&amp;rsquo;ll start with creating a new site with a very basic template.</description>
+    </item>
+    
+    <item>
+      <title>Project 2:Modeling, Testing, and Predicting- Traumatic Brain Injuries from 2014</title>
+      <link>/project2/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>/project2/</guid>
+      <description>Introduction: Traumatic Brain Injury The dataset titled &#39;tbi_age&#39; contains information on traumatic brain injuries with five different variables (age_group, type, injury_mechanism, number_est, and rate_est). A traumatic brain injury is caused by an external force exerted onto the head or other body parts which end up causing trauma to the brain in some way. Within this dataset, the following variables are recorded: the age group, the type of care received/occurrence whether it was an emergency visit, hospitalization, or resulted in death, how the injury occurred (example: fall, assault, self-harm, etc), the estimated observed cases in 2014, and the rate per 100,000 cases in 2014.</description>
+    </item>
+    
+    <item>
+      <title>Project1: Do Food Consumption and Drink Consumption affect CO2 Emissions in Countries around the World? </title>
+      <link>/project1/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>/project1/</guid>
+      <description>Introduction In this analysis, the datasets &amp;quot;food_consumption&amp;quot; and &amp;quot;drinks&amp;quot; are examined to determine potenital relationships, summary statistics, and visual analyses. The dataset &amp;quot;food_consumption&amp;quot; contains data from the Food and Agriculture Organization of the United Nations documenting data on countries around the world, specific food categories, the consumption of these foods (kg/person/year), and lastly, the CO2 emission (kg CO2/person/year). The dataset &amp;quot;drinks&amp;quot; contains data from the World Health Organization and Global Information System on Alcohol and Health which contains data on countries around the world, beer servings (per person), spirit servings (per person), wine servings (per person), and the total liters of alcohol consumed by a person.</description>
+    </item>
+    
+  </channel>
+</rss>

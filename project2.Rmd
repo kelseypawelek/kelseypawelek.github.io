@@ -1,0 +1,382 @@
+---
+title: "Project 2:Modeling, Testing, and Predicting- Traumatic Brain Injuries from 2014"
+author: "Kelsey Pawelek"
+date: "11/22/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+hook_output = knit_hooks$get('output')
+knit_hooks$set(output = function(x, options) {
+  # this hook is used only when the linewidth option is not NULL
+  if (!is.null(n <- options$linewidth)) {
+    x = knitr:::split_lines(x)
+    # any lines wider than n should be wrapped
+    if (any(nchar(x) > n)) x = strwrap(x, width = n)
+    x = paste(x, collapse = '\n')
+  }
+  hook_output(x, options)
+})
+
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE,fig.align="center",warning=FALSE,message=FALSE,fig.width=8, fig.height=5, linewidth=60)
+options(tibble.width = 100,width = 100)
+
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(tidyverse)
+library(rstatix)
+library(interactions)
+library(sandwich) 
+library(lmtest)
+library(glmnet)
+library(ggplot2)
+library(ggpubr)
+
+#HERE'S THE CLASSIFICAITON DIAGNOSTICS FUNCTION
+class_diag<-function(probs,truth){
+  tab<-table(factor(probs>.5,levels=c("FALSE","TRUE")),truth)
+  acc=sum(diag(tab))/sum(tab)
+  sens=tab[2,2]/colSums(tab)[2]
+  spec=tab[1,1]/colSums(tab)[1]
+  ppv=tab[2,2]/rowSums(tab)[2]
+  f1=2*(sens*ppv)/(sens+ppv)
+
+  if(is.numeric(truth)==FALSE & is.logical(truth)==FALSE){
+    truth<-as.numeric(truth)-1}
+  
+  #CALCULATE EXACT AUC
+  ord<-order(probs, decreasing=TRUE)
+  probs <- probs[ord]; truth <- truth[ord]
+  
+  TPR=cumsum(truth)/max(1,sum(truth)) 
+  FPR=cumsum(!truth)/max(1,sum(!truth))
+  
+  dup<-c(probs[-1]>=probs[-length(probs)], FALSE)
+  TPR<-c(0,TPR[!dup],1); FPR<-c(0,FPR[!dup],1)
+  
+  n <- length(TPR)
+  auc<- sum( ((TPR[-1]+TPR[-n])/2) * (FPR[-1]-FPR[-n]) )
+
+  data.frame(acc,sens,spec,ppv,f1,auc)
+}
+
+```
+
+## Introduction: Traumatic Brain Injury  
+The dataset titled 'tbi_age' contains information on traumatic brain injuries with five different variables (age_group, type, injury_mechanism, number_est, and rate_est). A traumatic brain injury is caused by an external force exerted onto the head or other body parts which end up causing trauma to the brain in some way. Within this dataset, the following variables are recorded: the age group, the type of care received/occurrence whether it was an emergency visit, hospitalization, or resulted in death, how the injury occurred (example: fall, assault, self-harm, etc), the estimated observed cases in 2014, and the rate per 100,000 cases in 2014. This dataset contains 231 observations of victims of TBI ranging from ages 0 to 75+. The main variables investigated throughout this project are the type, age group, number_est, and rate_est. This dataset contains data collected from the CDC (Centers for Disease and Control and Prevention) and the Veterans Brain Injury Center. For this analysis, the NAs were omitted, and the resulting dataset is now called 'TBIdataset' and is used throughout all tests/models.
+
+```{r}
+tbi_age <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-24/tbi_age.csv')
+glimpse(tbi_age)
+
+TBIdataset <- na.omit(tbi_age)
+```
+
+
+## MANOVA testing and ANOVA testing 
+
+To begin running these tests, the assumptions need to be considered. 
+
+MANOVA assumptions include: random samples, independent observations, multivariate normality of DVs, homogeneity of within-group covariance matrices, linear relationships among DVs, no extreme univariate or multivariate outliers, no multicollinearity.
+
+The basis of ANOVA testing is the following: 
+ANOVA assumptions include: random samples, independent observations, normal distribution or large sample, equal variance. 
+
+```{r}
+## ASSUMPTIONS for MANOVA
+group <- TBIdataset$type 
+DVs <- TBIdataset %>% select(number_est, rate_est)
+
+  #Test multivariate normality for each group (null:   assumption met)
+sapply(split(DVs,group), mshapiro_test)
+
+  #If any p<.05, stop. If not, test homogeneity of covariance matrices
+
+  #Box's M test (null: assumption met)
+box_m(DVs, group)
+
+  #View covariance matrices for each group
+lapply(split(DVs, group), cov)
+
+## MANOVA TEST 
+man1<-manova(cbind(number_est,rate_est)~type, data=TBIdataset)
+summary(man1)
+
+
+## UNIVARIATE ANOVA TESTS
+summary.aov(man1)
+summary(aov(number_est~type, data=TBIdataset))
+summary(aov(rate_est~type, data=TBIdataset))
+
+
+## POST-HOC TESTS 
+TBIdataset%>%group_by(type)%>%summarize(mean(number_est),mean(rate_est))
+
+pairwise.t.test(TBIdataset$number_est, TBIdataset$type, p.adj = "none")
+pairwise.t.test(TBIdataset$rate_est, TBIdataset$type, p.adj = "none")
+
+
+## PROBABILITY OF AT LEAST ONE TYPE OF TYPE 1 ERROR 
+1-.95^9
+
+## ADJUSTING THE SIGNIFICANCE LEVEL (Bonferroni Correction)
+0.05/9
+
+
+```
+
+**A one-way MANOVA was conducted on the dataset TBIdataset by examining the effect of the type of care received/result (emergency department visit, hospitalizations, and deaths) on two dependent variables (number_est and rate_est).  Before running a MANOVA test, the assumptions need to met. First, the observations in the dataset TBIdataset are random and independent observations. Furthermore, to test for multivariate normality for each group, the mshapiro_test was run. The p-value was less than 0.05 for all groups (deaths, emergency department visit, and hospitalizations) indicating normality. The rest of the assumptions (homogeneity of within-group covariance matrices) did not have to be conducted; however, the code above shows Box's M-test for homogeneity of covariance matrices with a p-value less than 0.05 as well. When examining the covariance matrices, it is concluded that there is relative homogeneity. Finally, no outliers were evident within the TBIdataset. With this in mind, all the assumptions of the observations made in the dataset TBIdataset are met and therefore MANOVA testing can be conducted. The MANOVA testing hypotheses are the following: Null Hypothesis: For both DVs (number_est, rate_est), means for each type are equal. Alternate Hypothesis: For at least one DV, at least one type mean is different. After running the MANOVA test, it was concluded that the p-value < 0.05 indicating rejection of the null hypothesis and the means for at least one type is different, Pillai trace =0.20182, pseudo F(4,434)=12.177, p < 0.0001. Since the overall MANOVA is significant (2.164e-09), univariate ANOVA testing is run to show a mean difference across the types and determine which types are different. After running the one-way ANOVAs for each variable, both are determined to be significant and for number_est and rate_est, at least one type differs. The univariate ANOVAs for number_est and rate_est were also significant, F(2,217)=16.185, p < 0.0001 and F(2,217)=22.648, p < 0.0001, respectively. Post hoc analysis was performed by using pairwise comparisons to determine which types (emergency department visit, hospitalizations, and deaths) differed in number_est and rate_est. The number of tests performed is 1 MANOVA, two ANOVA and six pairwise t tests indicating a total of 9 tests run. The probability of a type 1 error occurring with 9 tests run is 0.3698 or 36.98%, however the Bonferroni correction can account for this error. All types were found to differ significantly from each other in terms of number_est and rate_est except for the type of hospitalizations after adjusting for multiple comparisons (Bonferroni Correction is 0.05/9 (tests) = 0.0056).* 
+
+
+## Randomization test
+The randomization test was performed on the correlation coefficient of two numeric variables known as 'number_est' and 'rate_est' within the TBIdataset. 
+The null hypothesis is the following: there is no linear relationship between 'number_est' and 'rate_est'.
+The alternate hypothesis is the following: there is a linear relationship between 'number_est' and 'rate_est'.
+```{r}
+
+## RANDOMIZATION TEST ON CORRELATION COEFFICIENT
+TBIdataset %>% slice(sample(1:n(), replace=T)) %>% summarize(cor(number_est,rate_est))
+
+cors <- vector()
+for(i in 1:5000){
+  cors[i] <- TBIdataset %>% slice(sample(1:n(), replace=T)) %>%summarize(cor(number_est,rate_est)) %>% pull
+}
+
+hist(cors)
+
+quantile(cors, c(.025, .975))
+
+
+## COMPARISON (normal-theory)
+cor.test(TBIdataset$number_est, TBIdataset$rate_est)
+
+ggscatter(TBIdataset, x = "number_est", y = "rate_est", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "number_est", ylab = "rate_est")
+
+```
+*By using randomization testing on this correlation coefficient between number_est and rate_est within the TBIdataset, the correlation coefficient with randomization is determined to be the following: 0.5910 (this value may change due to randomization test). The 95% confidence interval is the following: lower level is 0.4620 and upper level is 0.7951. This indicates 95% confidence that the correlation coefficient lies between 0.4620 and 0.7951. A histogram is shown to demonstrate the distribution of cors (randomization test). This indicates a moderate positive or negative correlation. When running the normal-theory correlation coefficient, the value is 0.5150 indicating a moderate positive or negative correlation between number_est and rate_est. Visualization of the correlation between number_est (x-axis) and rate_est (y-axis). * 
+
+
+
+## Linear Regression Model 
+In this linear regression model, the following question is investigated:  What predicts number_est or estimated observed cases in 2014? In this linear regression model, the null hypotheses are the following: While controlling for age_group, type does not explain variation in the number of estimated observed cases in 2014. While controlling for type, the age_group does not explain variation in the number of estimated observed cases in 2014. The alternate hypothesis is the following: While controlling for age_group, type does explain variation in the number of estimated observed cases in 2014. While controlling for type, the age_group does explain variation in the number of estimated observed cases in 2014. In this interaction, all the numeric variables are mean centered. 
+The assumptions for linear regression are the following (LINE conditions): linear relationship between each predictor (x) and the response (y), independent observations, random samples, normality distributed residuals, and equal variance of points/residuals along regression line (homoskedasticity).
+```{r}
+##LINEAR REGRESSION MODEL 
+
+  ## Mean-centering numeric variables 
+TBIdataset%>%na.omit%>% mutate(y=ifelse(type=="Deaths",1,0),
+       number_est_c=number_est-mean(number_est),
+       rate_est_c=rate_est-mean(rate_est)) -> TBIdata1
+
+  ## Linear regression model 
+fit <- lm(number_est_c ~ age_group + type, data=TBIdata1)
+summary(fit)
+
+
+  ## Plot of the regression model 
+ggplot(TBIdata1, aes(x=age_group, y=number_est_c,group=type))+geom_point(aes(color=type))+
+geom_smooth(method="lm",formula=y~1,se=F,fullrange=T,aes(color=type))+
+theme(legend.position=c(.30,.80))+xlab("age_group")
+
+
+  ## Assumptions for Linear Regression Model 
+
+resids<-fit$residuals
+fitvals<-fit$fitted.values
+ggplot()+geom_point(aes(fitvals,resids))+geom_hline(yintercept=0, color='red')
+
+par(mfrow=c(1,2)); hist(resids); qqnorm(resids); qqline(resids, col='red')
+
+    ## Assumptions (Normality) Using the Shapiro-Wilk test 
+      ## Null hypothesis: true distribution is normal 
+shapiro.test(resids) ## REJECT NULL - ASSUME NON-NORMALITY
+
+    ##Assumptions (Homoskedsaticity)  Using the Breusch-Pagan test
+      ## Null hypothesis: homoskedastic 
+fit<-lm(number_est_c~age_group+type,data=TBIdata1)
+bptest(fit) ## NULL FAILED TO BE REJECTED- ASSUME HOMOSKEDASTICITY
+
+ggplot(TBIdata1,aes(age_group,number_est_c,color=type))+geom_point() ## NO FANNING PATTERN PRESENT - ASSUME HOMOSKEDASTICITY
+
+  ## Recompute regression results with robust standard errors
+summary(fit)$coef[,1:2] ## uncorrected SEs
+
+coeftest(fit, vcov = vcovHC(fit))[,1:2] ## correct SEs
+
+
+  ## Proportion of the variation in the outcome does the model explain 
+summary(fit)$r.sq
+```
+*A linear regression model predicting one response variable of number_est_c from the two variables of age_group and type the following is determined: -12236 is the predicted value of number_est_c when age_group equals 0-17 and type is deaths. While  holding type constant, the slope of the various age groups are shown in the code on the number of estimated observed cases. Furthermore, while holding age_group constant, 79736 is the slope for type of emergency department visit on the number of estimated observed cases. While holding age_group constant, 6544 is the slope for type of hospitalizations on the number of estimated observed cases. The assumptions of linearity, normality, and homoskedasticity were checked by examining graphically, as well as running hypothesis tests (Shapiro-Wilks test and Breusch-Pagan test) . The data fails to be linear and normal, however, homoskedasticity is assumed. Although not all the assumptions were met through this dataset, the regression results were recomputed with robust standard errors. When comparing the before and after robust SEs, it can be seen that the standard errors for all interactions decreases dramatically, with the exceptions of the interaction of number_est_c and age_groupTotal and the interaction of number_est_c and typeEmergency Department Visit. This indicates the linear regression model with robust standard errors is a better model than the previous linear regression model. The proportion of the variation in the outcome this model explains is 0.2575 or 25.75%.*
+
+## Rerun of Linear Regression Model with Bootstrapped Standard Errors 
+The linear regression model from above was rerun, this time with bootstrapped standard errors. To do this, resampling was done. First randomly sample rows from the TBIdata1 with replacement, then calculate the coefficient estimates on the bootstrapped sample. This was repeated 5000 times in the following code. The empirical 95% confidence interval was also found. 
+```{r}
+
+## LINEAR REGRESSION MODEL WITH BOOTSTRAPPED STANDARD ERRORS (By Resampling)
+
+boot_dat<- sample_frac(TBIdata1, replace=T)
+
+samp_distn<-replicate(5000, {
+boot_dat <- sample_frac(TBIdata1, replace=T)
+fit2 <- lm(number_est_c~age_group+ type, data=boot_dat)
+coef(fit2) 
+})
+           
+## ESTIMATED SEs
+samp_distn %>% t %>% as.data.frame %>% summarize_all(sd)
+
+## EMPIRICAL 95% CI 
+samp_distn %>% t %>% as.data.frame %>% pivot_longer(1:13) %>% group_by(name) %>%summarize(lower=quantile(value,.025), upper=quantile(value,.975))
+
+
+## COMPARISION 
+coeftest(fit) [,1:2] ## Normal-theory SEs
+
+coeftest(fit, vcov=vcovHC(fit))[,1:2] ## Robust SEs
+
+samp_distn %>% t %>% as.data.frame %>% summarize_all(sd) ## Bootstrapped SEs (resampling rows)
+
+
+```
+*After rerunning the linear regression model with bootstrapped standard errors, it was compared to the previous linear regression model. When comparing the normal-theory SEs to the Robust SEs, there is a large decrease in standard error when using the robust SEs. Furthermore, after using bootstrapped SEs (resampling rows), there again is another decrease in standard error when compared to both previous linear regression models. Furthermore, code was run to determine empirical confidence intervals. From this, the lower and upper limits of the 95% CI. From these limits, it can be interpreted that there is 95% confidence that number_est_c falls within these lower and upper limits for each age_group. Basically, bootstrapped SEs are helpful when assumptions are violated, or a small sample size is present. From this code, it can be inferred that the bootstrapping SEs allow for a better linear regression model to be created to model the dataset 'TBIdata1'. *
+
+## Logistic Regression Model (two explanatory variables)
+In this logistic regression model, a binary variable or dummy variable was created from the variable 'type' to refer to if the patient's traumatic brain injury resulted in the patient living or dying. To do this, a dummy variable was created to refer to 'deaths' as 1 and the other two types known as 'hospitalizations' and 'emergency department visits' as 0 indicating the patient lived. In this model, the 'y' binary variable was predicted from two explanatory variables of number_est and rate_est which represent the following: the estimated observed cases in 2014 and the rate per 100,000 cases in 2014. Furthermore, all numeric variables (number_est and rate_est) were centered for the logistic regression model.  
+```{r}
+
+## LOGISTIC REGRESSION MODEL (TWO EXPLANATORY VARIABLES)
+library(interactions)
+
+TBIdataset%>%select(number_est,rate_est,type)%>%na.omit%>% 
+mutate(y=ifelse(type=="Deaths",1,0),
+       number_est_c=number_est-mean(number_est),
+       rate_est_c=rate_est-mean(rate_est)) -> TBIdata1
+
+fit3 <- glm(y~number_est_c+rate_est_c,data=TBIdata1,family='binomial')
+
+summary(fit3)
+coeftest(fit3) ## COEFFICIENT ESTIMATES
+exp(coef(fit3))
+
+
+## CONFUSION MATRIX
+prob<-predict(fit3,type="response") 
+pred<-ifelse(prob>.5,1,0)
+table(truth=TBIdata1$y, prediction=pred)%>%addmargins
+
+(113+57)/220  ## ACCURACY
+57/74   ## TPR (SENSITIVITY) probability of resulting in type=deaths
+113/146   ## TNR (SPECIFICITY) probability of type= Emergency Department Visit/Hospitalization
+57/90   ## PPV (PRECISION) proportion type=deaths who actually are 
+
+
+## GGPLOT DENSITY PLOT
+TBIdata1$logit<-predict(fit3,type="link") 
+
+TBIdata1%>%ggplot()+geom_density(aes(logit,color=,fill=type), alpha=1)+ theme(legend.position=c(.3,.75))+geom_vline(xintercept=0)+xlab("predictor (logit)") + xlim(-20,10) 
+
+## ROC CURVE (PLOT)
+library(plotROC)
+ROCplot<-ggplot(TBIdata1)+geom_roc(aes(d=y,m=prob), n.cuts=0) 
+ROCplot
+
+## CALCULATE AUC 
+calc_auc(ROCplot)
+
+class_diag(prob, TBIdata1$y)
+
+```
+*After running the above code for this logistic regression model, the coefficient estimates can be interpreted as the following: 
+(intercept): odds of resulting in a dead patient with a number_est_c=0 and rate_est_c=0 is 0.0005. 
+(number_est_c): by controlling for rate_est_c, for every 1 unit increase in number_est_c, the odds of the patient dying increases by a factor of 0.9999. 
+(raet_est_c): by controlling for number_est_c, for every 1 unit increase in rate_est_c, the odds of the patient dying increases by a factor of 0.8741.
+A confusion matrix was created to model predictions versus true outcomes. From the confusion matrix, the accuracy, sensitivity (TPR), specificity (TNR), and precision (PPV) can be calculated. The accuracy of this model is 0.7727.  The sensitivity is 0.7703, which is the true positive rate, so the probability of the patient resulting in death from the TBI. The specificity is 0.7740, which is the true negative rate, so the probability of the patient living from the TBI.  Finally, the precision is 0.6333, which is the proportion classified as 'deaths' who actually resulted in death from TBI. The AUC calculated from the ROCplot and also the 'class_diag' code is 0.8729 indicating this is a 'good' logistic regression model. The ROC plot shown above shows the false positive fraction on the x-axis and the true positive fraction on the y-axis. This ROC plot does not indicate the best performance for the classifiers, as the curve does not touch the very top left of the graph. Basically, from this ROC curve it can be inferred that the classifiers in this model are somewhat useful, however, the model is not the most accurate test. *
+
+
+## Logistic Regression Model (ALL variables)
+In this logistic regression model, a binary variable or dummy variable was created from the variable 'type' to refer to if the patient's traumatic brain injury resulted in the patient living or dying. To do this, a dummy variable was created to refer to 'deaths' as 1 and the other two types known as 'hospitalizations' and 'emergency department visits' as 0 indicating the patient lived. In this model, the 'y' binary variable was predicted from all variables including number_est_c, rate_est_c, injury_mechanism, and age_group.  Furthermore, all numeric variables (number_est and rate_est) were centered for the logistic regression model.
+```{r}
+
+## LOGISTIC REGRESSION MODEL (ALL VARIABLES)
+TBIdataset%>%na.omit%>% 
+mutate(y=ifelse(type=="Deaths",1,0),
+       number_est_c=number_est-mean(number_est),
+       rate_est_c=rate_est-mean(rate_est)) -> TBIdata1
+
+fit4 <- glm(y~number_est_c+rate_est_c+injury_mechanism+age_group,data=TBIdata1,family='binomial')
+
+summary(fit4)
+coeftest(fit4) ## COEFFICIENT ESTIMATES
+exp(coef(fit4))
+
+
+## CONFUSION MATRIX
+prob<-predict(fit4,type="response") 
+pred<-ifelse(prob>.5,1,0)
+table(truth=TBIdata1$y, prediction=pred)%>%addmargins
+
+class_diag(prob, TBIdata1$y)
+
+## 10-fold CV
+set.seed(1234)
+k=10
+data <- TBIdata1 %>% sample_frac 
+folds <- ntile(1:nrow(data),n=10) 
+diags<-NULL
+for(i in 1:k){
+train <- data[folds!=i,] 
+test <- data[folds==i,] 
+truth <- test$y
+fit5 <- glm(y~number_est_c+rate_est_c+injury_mechanism+age_group, data=train, family="binomial")
+probs <- predict(fit4, newdata=test, type="response")
+diags<-rbind(diags,class_diag(probs,truth))
+}
+
+summarize_all(diags,mean)
+
+## LASSO 
+y<-as.matrix(TBIdata1$y) #grab response
+x<-model.matrix(y~number_est_c+rate_est_c+injury_mechanism+age_group,data=TBIdata1)[,-1] 
+
+x<-scale(x)
+head(x)
+
+glm(y~x,family=binomial)
+
+cv <- cv.glmnet(x,y, family="binomial") 
+
+{plot(cv$glmnet.fit, "lambda", label=TRUE); abline(v = log(cv$lambda.1se)); abline(v = log(cv$lambda.min),lty=2)}
+
+cv<-cv.glmnet(x,y,family="binomial")
+lasso<-glmnet(x,y,family="binomial",lambda=cv$lambda.1se)
+coef(lasso)
+
+## 10-fold CV USING ONLY THE VARIABLES LASSO SELECTED
+set.seed(1234)
+k=10
+
+data <- TBIdata1 %>% sample_frac
+folds <- ntile(1:nrow(data),n=10) 
+
+diags<-NULL
+for(i in 1:k){
+  train <- data[folds!=i,] 
+  test <- data[folds==i,] 
+  truth <- test$y 
+  fit6 <- glm(y~number_est_c+rate_est_c+injury_mechanism+age_group,data=train, family="binomial")
+  probs <- predict(fit4, newdata=test, type="response")
+  diags<-rbind(diags,class_diag(probs,truth))
+}
+
+diags%>%summarize_all(mean)
+```
+*After running the above code for this logistic regression model, the in-sample classification diagnostics were calculated (Accuracy, Sensitivity, Specificity, Precision, AUC). The accuracy of this model is 0.8591.  The sensitivity is 0.7703, which is the true positive rate, so the probability of the patient resulting in death from the TBI. The specificity is 0.9041, which is the true negative rate, so the probability of the patient living from the TBI.  Finally, the precision is 0.8028, which is the proportion classified as 'deaths' who actually resulted in death from TBI. Furthermore, the AUC resulting from this logistic regression model (of all variables) is 0.9083 indicating a 'great' logistic regression model (better than the previous model). It can be inferred that by using all variables to predict whether the patient lives or dies from the traumatic brain injury is more accurate than just using the two explanatory variables from before. 
+Furthermore, a 10-fold (or repeated random sub-sampling) CV was performed on this model. Here are the following results of the classification diagnostics: The accuracy of this model is 0.8591.  The sensitivity is 0.7804, which is the true positive rate, so the probability of the patient resulting in death from the TBI. The specificity is 0.9109, which is the true negative rate, so the probability of the patient living from the TBI.  Finally, the precision is 0.7744, which is the proportion classified as 'deaths' who actually resulted in death from TBI. Furthermore, the AUC resulting from this logistic regression model with CV is 0.9084 indicating a 'great' logistic regression model. When comparing the 10-fold CV model with the previous in-sample metrics, a difference in sensitivity, specificity, and precision is seen. Furthermore, the AUC from the 10-fold CV model is a tad bit higher than the AUC of the previous model, indicating a more accurate model. 
+Next, LASSO was performed on the same model/variables. The variables retained aftering performing LASSO are number_est_c, rate_est_c, and injury_mechanismUnintensionalFalls. It can now be inferred that these variables (number_est_c, rate_est_c, and injury_mechanismUnintensionalFalls) are the most predictive variables for this model.
+Finally, a 10-fold (or repeated random sub-sampling) CV was performed using only the variables selected from LASSO. Here are the following results of the classification diagnostics: The accuracy of this model is 0.8591.  The sensitivity is 0.7804, which is the true positive rate, so the probability of the patient resulting in death from the TBI. The specificity is 0.9109, which is the true negative rate, so the probability of the patient living from the TBI.  Finally, the precision is 0.7943, which is the proportion classified as 'deaths' who actually resulted in death from TBI. Furthermore, the AUC resulting from this logistic regression model with CV is 0.9084 indicating a 'great' logistic regression model. When comparing this model to the above logistic regression models, this model appears to be a better model than the first logistic regression model (without CV) and is very similar to the logistic regression model (with CV). In conclusion, using 10-fold repeated sub-sampling results in the most accurate logistic regression models and can be seen when comparing all three of these models. Using all variables (and narrowing down to the most effective ones using LASSO) can resulting in the best (and most accurate) logistic regression model for this dataset.  *
