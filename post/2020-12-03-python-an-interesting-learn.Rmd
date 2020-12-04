@@ -1,0 +1,76 @@
+---
+title: BEWARE OF R and Snakes 
+author: ''
+date: '12/03/2020'
+slug: python-an-interesting-learn
+categories: []
+tags: []
+description: ''
+---
+
+## R=Studio? & Python=Snakes? 
+
+These two languages are very interesting-- 
+
+As we have previously learned in SDS 348, R and Python have some differences. 
+
+For instance, R syntax is fat (sorry buddy) and python syntax looks soooo clean! Both hey they are both still kinda confusing but SO fun to learn! 
+
+For the majority of this semester, we have explored the R Studio world.
+
+Here is R Studio at work: 
+![](/post/2020-12-03-python-an-interesting-learn_files/rrrr.gif)
+
+```{r}
+
+library(reticulate)
+
+hehe <- "good, how are you, buddy?"
+hehe
+```
+
+
+
+For the ending of this semester, we have explored the Python world. 
+
+Here is Python at work: 
+![](/post/2020-12-03-python-an-interesting-learn_files/snakeee.gif)
+
+```{python}
+x="hi how are you?"
+print(x)
+y="good and you?"
+print(y)
+z = "you're silly"
+print(z)
+
+print(x,r.hehe)
+
+```
+
+## It is pretty neat how these two languages can talk to each other! 
+
+
+Now let's use python to do some cool things!!
+![](/post/2020-12-03-python-an-interesting-learn_files/gif.gif)
+
+sorry I love corgis :)
+
+```{python}
+import re
+import numpy as np
+import pandas as pd
+
+string1="corgi"
+string2="corgy"
+
+re.findall(r"corg[iy]",string1)
+re.findall(r"corg[iy]",string2)
+
+```
+
+![](/post/2020-12-03-python-an-interesting-learn_files/giphy.gif)
+
+
+
+

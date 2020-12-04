@@ -1,0 +1,124 @@
+---
+title: "Kelsey Pawelek's Resume"
+author: "Kelsey Pawelek"
+date: "12/3/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Kelsey Danielle Pawelek 
+361-701-1101
+kelseypawelek@yahoo.com
+
+![](/./resume_files/IMG_0460.JPG)
+ 
+## Address 
+ P O Box 1324
+Orange Grove, TX 78372
+
+
+5811 Mesa Drive Apt # 531 Austin, TX 78731
+
+
+
+## CAREER OBJECTIVE
+Accomplished, hardworking student earning a Bachelor’s degree in Biology from University of Texas at Austin. Aiming to attend Physician’s Assistant Medical School after graduation. Currently getting certified by the National Healthcareer Association as a Certified Clinical Medical Assistant.
+
+
+
+## EDUCATION
+The University of Texas at Austin Bachelor of           Science and Art (BSA) Biology Minor in Health           Communications Pre-Physician’s Assistant
+Expected Graduation: December 2020
+GPA: 3.54
+
+
+Orange Grove High School
+Orange Grove, Texas
+2017 Graduate 103.58 GPA #5 of 128 graduates
+
+
+
+## COURSEWORK
+Microbiology, Cell Biologym Biostatistics
+Human Microscopic & Gross Anatomy, Organic Chemistry
+Abnormal Psychology, Human Physiology, Genetics,
+Autistic Spectrum Disorder
+
+
+
+## ACTIVITIES AND HONORS
+Texas Royals 
+
+Global Medical Training Club 
+
+Texas Pre-Physician’s Assistant Society
+
+LPPA-Longhorn Pre-Pharmacy Association 
+
+Gamma Beta Phi Society
+
+
+
+## RELEVANT EXPERIENCE
+Atlantis Fellowship-Innovative Healthcare Education Tarragona, Spain 
+Hospital de San Pan/ Santa Tecla
+60 hours shadowing experience
+July 2019-August 2019
+
+
+Project SEED Undergraduate Research Assistant
+Spring 2019
+
+
+Driscoll Children’s Hospital Corpus Christi, TX 
+Volunteer
+Worked in NICU
+Worked in Gift Shop
+Summer 2018
+
+
+St David’s Medical Center Austin, TX 
+Volunteer
+Discharged patients 
+Assisted in rehab wing 
+Assisted in women’s wing
+Fall 2018-Spring 2020 
+DUE TO COVID-19 UNABLE TO CONTINUE VOLUNTEERING 
+
+
+Kindred Hospice Corpus Christi, TX 
+Volunteer
+Worked as a filer/organizer
+Corpus Christi, TX
+
+  
+  
+## WORK EXPERIENCE
+Austin Sports Medicine & Orthopedics Austin, TX 
+Scan all file medical records, help organize medical insurance billing
+Fall 2019-Present 
+
+
+
+Live Oak Cardiology Buda, TX 
+Medical Assistant Externship 
+80 hour externship 
+October 2020- November 2020 
+
+
+## Interests 
+Volunteering, 
+Reading, 
+Listening to Music/Podcasts, 
+Traveling
+
+
+## Skills 
+Communication, 
+Leadership, 
+Problem-Solving, 
+Organizational, 
+Active Listening,
+Responsible
