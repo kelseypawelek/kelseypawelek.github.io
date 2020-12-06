@@ -1,11 +1,13 @@
 ---
 title: BEWARE OF R and Snakes 
-author: ''
-date: '12/03/2020'
+author: 'Kelsey Pawelek'
+date: 12/03/2020
 slug: python-an-interesting-learn
+linktitle: BEWARE OF R and Snakes 
+highlight: true
 categories: []
 tags: []
-description: ''
+description: 'Learning a little about R and a little about Python'
 ---
 
 ## R=Studio? & Python=Snakes? 
@@ -71,6 +73,6 @@ re.findall(r"corg[iy]",string2)
 
 ![](/post/2020-12-03-python-an-interesting-learn_files/giphy.gif)
 
-
+![This is my corgi doggo named Doug :)  ](/post/2020-12-03-python-an-interesting-learn_files/IMG_8505.JPG){width=300px height=200px}
 
 
